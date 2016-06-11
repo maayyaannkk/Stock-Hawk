@@ -1,6 +1,5 @@
 package com.sam_chordas.android.stockhawk.service;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
@@ -23,22 +22,18 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 /**
- * Created by sam_chordas on 9/30/15.
- * The GCMTask service is primarily for periodic tasks. However, OnRunTask can be called directly
- * and is used for the initialization and adding task as well.
+ * Created by maayy on 04-06-2016.
  */
-public class StockTaskService extends GcmTaskService {
-    private String LOG_TAG = StockTaskService.class.getSimpleName();
+public class HistoricalStockService extends GcmTaskService {
+    private String LOG_TAG = HistoricalStockService.class.getSimpleName();
 
     private OkHttpClient client = new OkHttpClient();
     private Context mContext;
     private StringBuilder mStoredSymbols = new StringBuilder();
-    private boolean isUpdate;
-
-    public StockTaskService() {
+    public HistoricalStockService() {
     }
 
-    public StockTaskService(Context context) {
+    public HistoricalStockService(Context context) {
         mContext = context;
     }
 
@@ -57,17 +52,19 @@ public class StockTaskService extends GcmTaskService {
         if (mContext == null) {
             mContext = this;
         }
+
         StringBuilder urlStringBuilder = new StringBuilder();
         try {
             // Base URL for the Yahoo query
+            //and%20endDate%20%3D%20%222010-03-10%22
             urlStringBuilder.append("https://query.yahooapis.com/v1/public/yql?q=");
-            urlStringBuilder.append(URLEncoder.encode("select * from yahoo.finance.quotes where symbol "
+            urlStringBuilder.append(URLEncoder.encode("select * from yahoo.finance.historicaldata where symbol "
                     + "in (", "UTF-8"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        if (params.getTag().equals("init") || params.getTag().equals("periodic")) {
-            isUpdate = true;
+
+        if (params.getTag().equals("init")) {
             initQueryCursor = mContext.getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
                     new String[]{"Distinct " + QuoteColumns.SYMBOL}, null,
                     null, null);
@@ -76,6 +73,7 @@ public class StockTaskService extends GcmTaskService {
                 try {
                     urlStringBuilder.append(
                             URLEncoder.encode("\"YHOO\",\"AAPL\",\"GOOG\",\"MSFT\")", "UTF-8"));
+                    urlStringBuilder.append(URLEncoder.encode(" and startDate = \""+ Utils.getStartDate()+"\" and endDate = \""+Utils.getEndDate()+"\"","UTF-8"));
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -90,23 +88,41 @@ public class StockTaskService extends GcmTaskService {
                 mStoredSymbols.replace(mStoredSymbols.length() - 1, mStoredSymbols.length(), ")");
                 try {
                     urlStringBuilder.append(URLEncoder.encode(mStoredSymbols.toString(), "UTF-8"));
+                    urlStringBuilder.append(URLEncoder.encode(" and startDate = \""+ Utils.getStartDate()+"\" and endDate = \""+Utils.getEndDate()+"\"","UTF-8"));
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
             }
-        } else if (params.getTag().equals("add")) {
-            isUpdate = false;
+        }else if(params.getTag().equals("periodic")){
+            initQueryCursor = mContext.getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
+                    new String[]{"Distinct " + QuoteColumns.SYMBOL}, null,
+                    null, null);
+            if (initQueryCursor.getCount() != 0 || initQueryCursor != null){
+                for (int i = 0; i < initQueryCursor.getCount(); i++) {
+                    mStoredSymbols.append("\"" +
+                            initQueryCursor.getString(initQueryCursor.getColumnIndex("symbol")) + "\",");
+                    initQueryCursor.moveToNext();
+                }
+                mStoredSymbols.replace(mStoredSymbols.length() - 1, mStoredSymbols.length(), ")");
+                try {
+                    urlStringBuilder.append(URLEncoder.encode(mStoredSymbols.toString(), "UTF-8"));
+                    urlStringBuilder.append(URLEncoder.encode(" and startDate = \""+ Utils.getPeriodicDate()+"\" and endDate = \""+Utils.getEndDate()+"\"","UTF-8"));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            }
+        }else if (params.getTag().equals("add")) {
             // get symbol from params.getExtra and build query
             String stockInput = params.getExtras().getString("symbol");
             try {
                 urlStringBuilder.append(URLEncoder.encode("\"" + stockInput + "\")", "UTF-8"));
+                urlStringBuilder.append(URLEncoder.encode(" and startDate = \""+ Utils.getStartDate()+"\" and endDate = \""+Utils.getEndDate()+"\"","UTF-8"));
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         }
-        // finalize the URL for the API query.
-        urlStringBuilder.append("&format=json&diagnostics=true&env=store%3A%2F%2Fdatatables."
-                + "org%2Falltableswithkeys&callback=");
+
+        urlStringBuilder.append("&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys&format=json");
 
         String urlString;
         String getResponse;
@@ -118,27 +134,17 @@ public class StockTaskService extends GcmTaskService {
             try {
                 getResponse = fetchData(urlString);
                 result = GcmNetworkManager.RESULT_SUCCESS;
-                try {
-                    ContentValues contentValues = new ContentValues();
-                    // update ISCURRENT to 0 (false) so new data is current
-                    if (isUpdate) {
-                        contentValues.put(QuoteColumns.ISCURRENT, 0);
-                        mContext.getContentResolver().update(QuoteProvider.Quotes.CONTENT_URI, contentValues,
-                                null, null);
-                    }
+                try{
                     mContext.getContentResolver().applyBatch(QuoteProvider.AUTHORITY,
-                            Utils.quoteJsonToContentVals(getResponse));
+                            Utils.histJsonToContentVals(getResponse));
                 } catch (RemoteException | OperationApplicationException e) {
                     Log.e(LOG_TAG, "Error applying batch insert", e);
-                } catch (NumberFormatException e) {
-                    Log.e(LOG_TAG, "Stock not found", e);
-                    result = GcmNetworkManager.RESULT_FAILURE;
                 }
-            } catch (IOException e) {
+            }catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
         return result;
     }
-
 }
