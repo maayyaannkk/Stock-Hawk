@@ -10,8 +10,7 @@ import android.util.Log;
 import com.google.android.gms.gcm.GcmNetworkManager;
 import com.google.android.gms.gcm.GcmTaskService;
 import com.google.android.gms.gcm.TaskParams;
-import com.sam_chordas.android.stockhawk.data.QuoteColumns;
-import com.sam_chordas.android.stockhawk.data.QuoteProvider;
+import com.sam_chordas.android.stockhawk.provider.QuoteContract;
 import com.sam_chordas.android.stockhawk.rest.Utils;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -65,8 +64,8 @@ public class HistoricalStockService extends GcmTaskService {
         }
 
         if (params.getTag().equals("init")) {
-            initQueryCursor = mContext.getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
-                    new String[]{"Distinct " + QuoteColumns.SYMBOL}, null,
+            initQueryCursor = mContext.getContentResolver().query(QuoteContract.Quotes.CONTENT_URI,
+                    new String[]{"Distinct " + QuoteContract.Historical.SYMBOL}, null,
                     null, null);
             if (initQueryCursor.getCount() == 0 || initQueryCursor == null) {
                 // Init task. Populates DB with quotes for the symbols seen below
@@ -77,7 +76,7 @@ public class HistoricalStockService extends GcmTaskService {
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
-            } else if (initQueryCursor != null) {
+            } else {
                 DatabaseUtils.dumpCursor(initQueryCursor);
                 initQueryCursor.moveToFirst();
                 for (int i = 0; i < initQueryCursor.getCount(); i++) {
@@ -94,8 +93,8 @@ public class HistoricalStockService extends GcmTaskService {
                 }
             }
         }else if(params.getTag().equals("periodic")){
-            initQueryCursor = mContext.getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
-                    new String[]{"Distinct " + QuoteColumns.SYMBOL}, null,
+            initQueryCursor = mContext.getContentResolver().query(QuoteContract.Historical.CONTENT_URI,
+                    new String[]{"Distinct " + QuoteContract.Historical.SYMBOL}, null,
                     null, null);
             if (initQueryCursor.getCount() != 0 || initQueryCursor != null){
                 for (int i = 0; i < initQueryCursor.getCount(); i++) {
@@ -135,7 +134,7 @@ public class HistoricalStockService extends GcmTaskService {
                 getResponse = fetchData(urlString);
                 result = GcmNetworkManager.RESULT_SUCCESS;
                 try{
-                    mContext.getContentResolver().applyBatch(QuoteProvider.AUTHORITY,
+                    mContext.getContentResolver().applyBatch(QuoteContract.CONTENT_AUTHORITY,
                             Utils.histJsonToContentVals(getResponse));
                 } catch (RemoteException | OperationApplicationException e) {
                     Log.e(LOG_TAG, "Error applying batch insert", e);

@@ -18,6 +18,7 @@ public class QuoteProvider extends ContentProvider {
 
     static final int QUOTE = 100;
     static final int QUOTE_WITH_ID = 101;
+    static final int QUOTE_WITH_SYMBOL = 102;
     static final int HISTORICAL = 200;
     static final int HISTORICAL_WITH_SYMBOL = 201;
 
@@ -27,12 +28,16 @@ public class QuoteProvider extends ContentProvider {
     private static final String sHistoricalWithSymbolSelection =
             QuoteContract.Historical.TABLE_NAME +
                     "." + QuoteContract.Historical.SYMBOL + " = ? ";
+    private static final String sQuoteWithSymbolSelection =
+            QuoteContract.Quotes.TABLE_NAME +
+                    "." + QuoteContract.Quotes.SYMBOL + " = ? ";
 
     static UriMatcher buildUriMatcher() {
         UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
         final String authority = QuoteContract.CONTENT_AUTHORITY;
 
         matcher.addURI(authority, QuoteContract.PATH_QUOTE + "/#", QUOTE_WITH_ID);
+        matcher.addURI(authority, QuoteContract.PATH_QUOTE + "/*", QUOTE_WITH_SYMBOL);
         matcher.addURI(authority, QuoteContract.PATH_QUOTE, QUOTE);
 
         matcher.addURI(authority, QuoteContract.PATH_HISTORICAL, HISTORICAL);
@@ -124,8 +129,34 @@ public class QuoteProvider extends ContentProvider {
 
     @Nullable
     @Override
-    public Uri insert(Uri uri, ContentValues contentValues) {
-        return null;
+    public Uri insert(Uri uri, ContentValues values) {
+        final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        final int match = sUriMatcher.match(uri);
+        Uri returnUri;
+        switch (match){
+            case QUOTE: {
+                long _id = db.insert(QuoteContract.Quotes.TABLE_NAME, null, values);
+                if (_id > 0) {
+                    returnUri = QuoteContract.Quotes.buildQuoteUri(_id);
+                } else {
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
+                }
+                break;
+            }
+            case HISTORICAL: {
+                long _id = db.insert(QuoteContract.Historical.TABLE_NAME, null, values);
+                if (_id > 0) {
+                    returnUri = QuoteContract.Historical.buildHistoricalUri(_id);
+                } else {
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
+                }
+                break;
+            }
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+        getContext().getContentResolver().notifyChange(uri, null);
+        return returnUri;
     }
 
     @Override
@@ -142,15 +173,19 @@ public class QuoteProvider extends ContentProvider {
             case QUOTE_WITH_ID:
                 rowsDeleted = db.delete(QuoteContract.Quotes.TABLE_NAME,sQuoteWithIdSelection,new String[]{QuoteContract.Quotes.getQuoteIdFromUri(uri)+""});
                 break;
+            case QUOTE_WITH_SYMBOL:
+                rowsDeleted = db.delete(QuoteContract.Quotes.TABLE_NAME,sQuoteWithSymbolSelection,new String[]{QuoteContract.Quotes.getSymbolFromUri(uri)});
+                break;
             case HISTORICAL:
                 rowsDeleted = db.delete(QuoteContract.Historical.TABLE_NAME,selection,selectionArgs);
                 break;
             case HISTORICAL_WITH_SYMBOL:
-                rowsDeleted = db.delete(QuoteContract.Quotes.TABLE_NAME,sHistoricalWithSymbolSelection,new String[]{QuoteContract.Historical.getSymbolFromUri(uri)});
+                rowsDeleted = db.delete(QuoteContract.Historical.TABLE_NAME,sHistoricalWithSymbolSelection,new String[]{QuoteContract.Historical.getSymbolFromUri(uri)});
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
+        getContext().getContentResolver().notifyChange(uri, null);
         return rowsDeleted;
     }
 

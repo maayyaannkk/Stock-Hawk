@@ -11,8 +11,7 @@ import android.util.Log;
 import com.google.android.gms.gcm.GcmNetworkManager;
 import com.google.android.gms.gcm.GcmTaskService;
 import com.google.android.gms.gcm.TaskParams;
-import com.sam_chordas.android.stockhawk.data.QuoteColumns;
-import com.sam_chordas.android.stockhawk.data.QuoteProvider;
+import com.sam_chordas.android.stockhawk.provider.QuoteContract;
 import com.sam_chordas.android.stockhawk.rest.Utils;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -68,8 +67,8 @@ public class StockTaskService extends GcmTaskService {
         }
         if (params.getTag().equals("init") || params.getTag().equals("periodic")) {
             isUpdate = true;
-            initQueryCursor = mContext.getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
-                    new String[]{"Distinct " + QuoteColumns.SYMBOL}, null,
+            initQueryCursor = mContext.getContentResolver().query(QuoteContract.Quotes.CONTENT_URI,
+                    new String[]{"Distinct " + QuoteContract.Quotes.SYMBOL}, null,
                     null, null);
             if (initQueryCursor.getCount() == 0 || initQueryCursor == null) {
                 // Init task. Populates DB with quotes for the symbols seen below
@@ -122,14 +121,15 @@ public class StockTaskService extends GcmTaskService {
                     ContentValues contentValues = new ContentValues();
                     // update ISCURRENT to 0 (false) so new data is current
                     if (isUpdate) {
-                        contentValues.put(QuoteColumns.ISCURRENT, 0);
-                        mContext.getContentResolver().update(QuoteProvider.Quotes.CONTENT_URI, contentValues,
+                        contentValues.put(QuoteContract.Quotes.ISCURRENT, 0);
+                        mContext.getContentResolver().update(QuoteContract.Quotes.CONTENT_URI, contentValues,
                                 null, null);
                     }
-                    mContext.getContentResolver().applyBatch(QuoteProvider.AUTHORITY,
+                    mContext.getContentResolver().applyBatch(QuoteContract.CONTENT_AUTHORITY,
                             Utils.quoteJsonToContentVals(getResponse));
                 } catch (RemoteException | OperationApplicationException e) {
                     Log.e(LOG_TAG, "Error applying batch insert", e);
+                    e.printStackTrace();
                 } catch (NumberFormatException e) {
                     Log.e(LOG_TAG, "Stock not found", e);
                     result = GcmNetworkManager.RESULT_FAILURE;

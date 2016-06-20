@@ -10,4 +10,17 @@
     <string name="input_hint">FB</string>
     <string name="input_prefill"></string>
     <string name="network_toast">Uh-oh! This app requires an internet connection</string>
+    <string name="chart_label">Stock History</string>
+    <string name="empty_stock_list_no_internet">Stock Info currently not available. Please switch on the Internet Connection</string>
+
+    <!-- Line graph activity-->
+    <string name="stock_history_legend">%1$s over the previous months</string>
+    <string name="stock_detail">%1$s Details</string>
+    <string name="stock_high">High</string>
+    <string name="stock_low">Low</string>
+    <string name="stock_date">Date</string>
+    <string name="stock_open">Open</string>
+    <string name="stock_close">Close</string>
+    <string name="stock_volume">Volume</string>
+    <string name="empty_stock_list">Stock Info currently not available</string>
 </resources>

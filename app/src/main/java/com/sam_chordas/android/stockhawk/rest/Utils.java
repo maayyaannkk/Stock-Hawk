@@ -3,14 +3,13 @@ package com.sam_chordas.android.stockhawk.rest;
 import android.content.ContentProviderOperation;
 import android.util.Log;
 
-import com.sam_chordas.android.stockhawk.data.HistoricalColumns;
-import com.sam_chordas.android.stockhawk.data.QuoteColumns;
-import com.sam_chordas.android.stockhawk.data.QuoteProvider;
+import com.sam_chordas.android.stockhawk.provider.QuoteContract;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -109,19 +108,19 @@ public class Utils {
 
     public static ContentProviderOperation buildBatchOperation(JSONObject jsonObject) {
         ContentProviderOperation.Builder builder = ContentProviderOperation.newInsert(
-                QuoteProvider.Quotes.CONTENT_URI);
+                QuoteContract.Quotes.CONTENT_URI);
         try {
             String change = jsonObject.getString("Change");
-            builder.withValue(QuoteColumns.SYMBOL, jsonObject.getString("symbol").toUpperCase());
-            builder.withValue(QuoteColumns.BIDPRICE, truncateBidPrice(jsonObject.getString("Bid")));
-            builder.withValue(QuoteColumns.PERCENT_CHANGE, truncateChange(
+            builder.withValue(QuoteContract.Quotes.SYMBOL, jsonObject.getString("symbol").toUpperCase());
+            builder.withValue(QuoteContract.Quotes.BIDPRICE, truncateBidPrice(jsonObject.getString("Bid")));
+            builder.withValue(QuoteContract.Quotes.PERCENT_CHANGE, truncateChange(
                     jsonObject.getString("ChangeinPercent"), true));
-            builder.withValue(QuoteColumns.CHANGE, truncateChange(change, false));
-            builder.withValue(QuoteColumns.ISCURRENT, 1);
+            builder.withValue(QuoteContract.Quotes.CHANGE, truncateChange(change, false));
+            builder.withValue(QuoteContract.Quotes.ISCURRENT, 1);
             if (change.charAt(0) == '-') {
-                builder.withValue(QuoteColumns.ISUP, 0);
+                builder.withValue(QuoteContract.Quotes.ISUP, 0);
             } else {
-                builder.withValue(QuoteColumns.ISUP, 1);
+                builder.withValue(QuoteContract.Quotes.ISUP, 1);
             }
 
         } catch (JSONException e) {
@@ -132,16 +131,16 @@ public class Utils {
 
     public static ContentProviderOperation buildBatchOperationHist(JSONObject jsonObject) {
         ContentProviderOperation.Builder builder = ContentProviderOperation.newInsert(
-                QuoteProvider.Historical.CONTENT_URI);
+                QuoteContract.Historical.CONTENT_URI);
         try {
 
-            builder.withValue(HistoricalColumns.SYMBOL, jsonObject.getString("Symbol").toUpperCase());
-            builder.withValue(HistoricalColumns.DATE, jsonObject.getString("Date"));
-            builder.withValue(HistoricalColumns.OPEN, truncateBidPrice(jsonObject.getString("Open")));
-            builder.withValue(HistoricalColumns.HIGH, truncateBidPrice(jsonObject.getString("High")));
-            builder.withValue(HistoricalColumns.LOW, truncateBidPrice(jsonObject.getString("Low")));
-            builder.withValue(HistoricalColumns.CLOSE, truncateBidPrice(jsonObject.getString("Close")));
-            builder.withValue(HistoricalColumns.VOLUME, jsonObject.getString("Volume"));
+            builder.withValue(QuoteContract.Historical.SYMBOL, jsonObject.getString("Symbol").toUpperCase());
+            builder.withValue(QuoteContract.Historical.DATE, jsonObject.getString("Date"));
+            builder.withValue(QuoteContract.Historical.OPEN, truncateBidPrice(jsonObject.getString("Open")));
+            builder.withValue(QuoteContract.Historical.HIGH, truncateBidPrice(jsonObject.getString("High")));
+            builder.withValue(QuoteContract.Historical.LOW, truncateBidPrice(jsonObject.getString("Low")));
+            builder.withValue(QuoteContract.Historical.CLOSE, truncateBidPrice(jsonObject.getString("Close")));
+            builder.withValue(QuoteContract.Historical.VOLUME, jsonObject.getString("Volume"));
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -180,5 +179,16 @@ public class Utils {
         cal.add(Calendar.DATE, -4);
         System.out.println(dateFormat.format(cal.getTime()));
         return dateFormat.format(cal.getTime());
+    }
+
+    public static String formatDate(String date){
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            Date d = dateFormat.parse(date);
+            return new SimpleDateFormat("dd MMM ''yy").format(d);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

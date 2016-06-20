@@ -8,34 +8,33 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.app.ActionBar;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.InputType;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.google.android.gms.gcm.GcmNetworkManager;
+import com.google.android.gms.gcm.PeriodicTask;
+import com.google.android.gms.gcm.Task;
+import com.melnykov.fab.FloatingActionButton;
 import com.sam_chordas.android.stockhawk.R;
-import com.sam_chordas.android.stockhawk.data.QuoteColumns;
-import com.sam_chordas.android.stockhawk.data.QuoteProvider;
+import com.sam_chordas.android.stockhawk.provider.QuoteContract;
 import com.sam_chordas.android.stockhawk.rest.QuoteCursorAdapter;
 import com.sam_chordas.android.stockhawk.rest.RecyclerViewItemClickListener;
 import com.sam_chordas.android.stockhawk.rest.Utils;
 import com.sam_chordas.android.stockhawk.service.HistoricalIntentService;
 import com.sam_chordas.android.stockhawk.service.StockIntentService;
 import com.sam_chordas.android.stockhawk.service.StockTaskService;
-import com.google.android.gms.gcm.GcmNetworkManager;
-import com.google.android.gms.gcm.PeriodicTask;
-import com.google.android.gms.gcm.Task;
-import com.melnykov.fab.FloatingActionButton;
 import com.sam_chordas.android.stockhawk.touch_helper.SimpleItemTouchHelperCallback;
 
 public class MyStocksActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
@@ -59,8 +58,6 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.e("start date ", Utils.getStartDate());
-        Log.e("end date ", Utils.getEndDate());
         mContext = this;
         ConnectivityManager cm =
                 (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -68,7 +65,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         isConnected = activeNetwork != null &&
                 activeNetwork.isConnectedOrConnecting();
-        setContentView(R.layout.activity_my_stocks);
+
         // The intent service is for executing immediate pulls from the Yahoo API
         // GCMTaskService can only schedule tasks, they cannot execute immediately
         mServiceIntent = new Intent(this, StockIntentService.class);
@@ -84,6 +81,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                 networkToast();
             }
         }
+        setContentView(R.layout.activity_my_stocks);
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
@@ -93,10 +91,9 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                 new RecyclerViewItemClickListener.OnItemClickListener() {
                     @Override
                     public void onItemClick(View v, int position) {
-                        //TODO:
-                        // do something on item click
-                        Intent intent = new Intent(MyStocksActivity.this,LineGraphActivity.class);
-                        intent.setData(QuoteProvider.Historical.withSymbol("YHOO"));
+                        TextView symbol = (TextView) v.findViewById(R.id.stock_symbol);
+                        Intent intent = new Intent(MyStocksActivity.this, LineGraphActivity.class);
+                        intent.setData(QuoteContract.Historical.withSymbol(symbol.getText().toString()));
                         startActivity(intent);
                     }
                 }));
@@ -117,8 +114,8 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                                 public void onInput(MaterialDialog dialog, CharSequence input) {
                                     // On FAB click, receive user input. Make sure the stock doesn't already exist
                                     // in the DB and proceed accordingly
-                                    Cursor c = getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
-                                            new String[]{QuoteColumns.SYMBOL}, QuoteColumns.SYMBOL + "= ?",
+                                    Cursor c = getContentResolver().query(QuoteContract.Quotes.CONTENT_URI,
+                                            new String[]{QuoteContract.Quotes.SYMBOL}, QuoteContract.Quotes.SYMBOL + "= ?",
                                             new String[]{input.toString().toUpperCase().trim()}, null);
                                     if (c.getCount() != 0) {
                                         Toast toast =
@@ -133,6 +130,9 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                                         mServiceIntent.putExtra("symbol", input.toString());
                                         startService(mServiceIntent);
 
+                                        mHistServiceIntent.putExtra("tag", "add");
+                                        mHistServiceIntent.putExtra("symbol", input.toString());
+                                        startService(mHistServiceIntent);
                                     }
                                 }
                             })
@@ -210,7 +210,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         if (id == R.id.action_change_units) {
             // this is for changing stock changes from percent value to dollar value
             Utils.showPercent = !Utils.showPercent;
-            this.getContentResolver().notifyChange(QuoteProvider.Quotes.CONTENT_URI, null);
+            this.getContentResolver().notifyChange(QuoteContract.Quotes.CONTENT_URI, null);
         }
 
         return super.onOptionsItemSelected(item);
@@ -219,16 +219,26 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         // This narrows the return to only the stocks that are most current.
-        return new CursorLoader(this, QuoteProvider.Quotes.CONTENT_URI,
-                new String[]{QuoteColumns._ID, QuoteColumns.SYMBOL, QuoteColumns.BIDPRICE,
-                        QuoteColumns.PERCENT_CHANGE, QuoteColumns.CHANGE, QuoteColumns.ISUP},
-                QuoteColumns.ISCURRENT + " = ?",
+        return new CursorLoader(this, QuoteContract.Quotes.CONTENT_URI,
+                new String[]{QuoteContract.Quotes._ID, QuoteContract.Quotes.SYMBOL, QuoteContract.Quotes.BIDPRICE,
+                        QuoteContract.Quotes.PERCENT_CHANGE, QuoteContract.Quotes.CHANGE, QuoteContract.Quotes.ISUP},
+                QuoteContract.Quotes.ISCURRENT + " = ?",
                 new String[]{"1"},
                 null);
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        if (data == null || !data.moveToFirst()) {
+            if (isConnected) {
+                ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.VISIBLE);
+            } else {
+                ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.VISIBLE);
+                ((TextView) findViewById(R.id.recyclerview_stock_empty)).setText(getResources().getString(R.string.empty_stock_list_no_internet));
+            }
+        } else {
+            ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.GONE);
+        }
         mCursorAdapter.swapCursor(data);
         mCursor = data;
     }

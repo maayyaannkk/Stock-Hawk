@@ -19,18 +19,18 @@ public class QuoteDBHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
 
         final String SQL_CREATE_QUOTE_TABLE = "CREATE TABLE " + QuoteContract.Quotes.TABLE_NAME + " (" +
-                QuoteContract.Quotes._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                QuoteContract.Quotes._ID + " INTEGER PRIMARY KEY ," +
                 QuoteContract.Quotes.SYMBOL + " TEXT NOT NULL, " +
                 QuoteContract.Quotes.PERCENT_CHANGE + " TEXT NOT NULL, " +
                 QuoteContract.Quotes.CHANGE + " TEXT NOT NULL, " +
                 QuoteContract.Quotes.BIDPRICE + " TEXT NOT NULL, " +
-                QuoteContract.Quotes.CREATED + " TEXT NOT NULL, " +
+                QuoteContract.Quotes.CREATED + " TEXT , " +
                 QuoteContract.Quotes.ISUP + " INTEGER NOT NULL, " +
                 QuoteContract.Quotes.ISCURRENT + " INTEGER NOT NULL, " +
                 " UNIQUE (" + QuoteContract.Quotes.SYMBOL + ") ON CONFLICT REPLACE);";
 
         final String SQL_CREATE_HISTORICAL_TABLE = "CREATE TABLE " + QuoteContract.Historical.TABLE_NAME + " (" +
-                QuoteContract.Historical._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                QuoteContract.Historical._ID + " INTEGER PRIMARY KEY ," +
                 QuoteContract.Historical.SYMBOL + " TEXT NOT NULL, " +
                 QuoteContract.Historical.DATE + " TEXT NOT NULL, " +
                 QuoteContract.Historical.OPEN + " TEXT NOT NULL, " +
@@ -38,7 +38,7 @@ public class QuoteDBHelper extends SQLiteOpenHelper {
                 QuoteContract.Historical.HIGH + " TEXT NOT NULL, " +
                 QuoteContract.Historical.LOW + " TEXT NOT NULL, " +
                 QuoteContract.Historical.VOLUME + " TEXT NOT NULL, " +
-                " UNIQUE ("+ QuoteContract.Historical.SYMBOL+","+ QuoteContract.Historical.DATE+") ON CONFLICT REPLACE)"+
+                " UNIQUE ("+ QuoteContract.Historical.SYMBOL+","+ QuoteContract.Historical.DATE+") ON CONFLICT REPLACE,"+
                 " FOREIGN KEY (" + QuoteContract.Historical.SYMBOL + ") REFERENCES " +
                 QuoteContract.Quotes.TABLE_NAME + " (" + QuoteContract.Quotes.SYMBOL + ") " +
                 " );";

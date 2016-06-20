@@ -12,7 +12,7 @@ public class QuoteContract {
     public static final String CONTENT_AUTHORITY = "com.sam_chordas.android.stockhawk.data.QuoteProvider";
     public static final Uri BASE_CONTENT_URI = Uri.parse("content://" + CONTENT_AUTHORITY);
 
-    public static final String PATH_QUOTE = "quote";
+    public static final String PATH_QUOTE = "quotes";
     public static final String PATH_HISTORICAL = "hist";
 
     public static final class Quotes implements BaseColumns {
@@ -43,6 +43,15 @@ public class QuoteContract {
         public static Uri buildQuoteUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
         }
+
+        public static Uri buildQuoteSymbol(String symbol) {
+            return CONTENT_URI.buildUpon().appendPath(symbol).build();
+        }
+
+        public static String getSymbolFromUri(Uri uri){
+            return uri.getPathSegments().get(1);
+        }
+
         public static long getQuoteIdFromUri(Uri uri) {
             return Long.parseLong(uri.getPathSegments().get(1));
         }
@@ -75,6 +84,9 @@ public class QuoteContract {
 
         public static Uri buildHistoricalUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
+        }
+        public static Uri withSymbol(String symbol){
+            return CONTENT_URI.buildUpon().appendPath(symbol).build();
         }
         public static String getSymbolFromUri(Uri uri){
             return uri.getPathSegments().get(1);
