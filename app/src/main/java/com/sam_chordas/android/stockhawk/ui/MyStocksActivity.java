@@ -48,11 +48,9 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
      */
     private CharSequence mTitle;
     private Intent mServiceIntent, mHistServiceIntent;
-    private ItemTouchHelper mItemTouchHelper;
     private static final int CURSOR_LOADER_ID = 0;
     private QuoteCursorAdapter mCursorAdapter;
     private Context mContext;
-    private Cursor mCursor;
     boolean isConnected;
 
     @Override
@@ -119,7 +117,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                                             new String[]{input.toString().toUpperCase().trim()}, null);
                                     if (c.getCount() != 0) {
                                         Toast toast =
-                                                Toast.makeText(MyStocksActivity.this, "This stock is already saved!",
+                                                Toast.makeText(MyStocksActivity.this, getResources().getString(R.string.stock_duplicate),
                                                         Toast.LENGTH_LONG);
                                         toast.setGravity(Gravity.CENTER, Gravity.CENTER, 0);
                                         toast.show();
@@ -134,6 +132,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
                                         mHistServiceIntent.putExtra("symbol", input.toString());
                                         startService(mHistServiceIntent);
                                     }
+                                    c.close();
                                 }
                             })
                             .show();
@@ -143,7 +142,7 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
 
             }
         });
-
+        ItemTouchHelper mItemTouchHelper;
         ItemTouchHelper.Callback callback = new SimpleItemTouchHelperCallback(mCursorAdapter);
         mItemTouchHelper = new ItemTouchHelper(callback);
         mItemTouchHelper.attachToRecyclerView(recyclerView);
@@ -183,7 +182,6 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
 
     public void restoreActionBar() {
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
         actionBar.setDisplayShowTitleEnabled(true);
         actionBar.setTitle(mTitle);
     }
@@ -230,17 +228,17 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         if (data == null || !data.moveToFirst()) {
-            if (isConnected) {
-                ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.VISIBLE);
+                if (isConnected) {
+                    ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.VISIBLE);
+                } else {
+                    ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.VISIBLE);
+                    ((TextView) findViewById(R.id.recyclerview_stock_empty)).setText(getResources().getString(R.string.empty_stock_list_no_internet));
+                }
             } else {
-                ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.VISIBLE);
-                ((TextView) findViewById(R.id.recyclerview_stock_empty)).setText(getResources().getString(R.string.empty_stock_list_no_internet));
+                ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.GONE);
             }
-        } else {
-            ((TextView) findViewById(R.id.recyclerview_stock_empty)).setVisibility(View.GONE);
-        }
-        mCursorAdapter.swapCursor(data);
-        mCursor = data;
+            mCursorAdapter.swapCursor(data);
+
     }
 
     @Override

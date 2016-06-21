@@ -11,6 +11,8 @@
     <string name="input_prefill"></string>
     <string name="network_toast">Uh-oh! This app requires an internet connection</string>
     <string name="chart_label">Stock History</string>
+    <string name="stock_duplicate">This stock is already saved!</string>
+    <string name="stock_not_found">Stock name %1$s not found</string>
     <string name="empty_stock_list_no_internet">Stock Info currently not available. Please switch on the Internet Connection</string>
 
     <!-- Line graph activity-->
