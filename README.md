@@ -10,3 +10,4 @@ To do this, I had to find and handle error cases, add accessibility features, al
 <img src="https://github.com/maayyaannkk/Stock-Hawk/blob/master/Screenshot6.png" height="520" width="290">
 <img src="https://github.com/maayyaannkk/Stock-Hawk/blob/master/Screenshot7.png" height="520" width="290">
 <img src="https://github.com/maayyaannkk/Stock-Hawk/blob/master/Screenshot8.png" height="520" width="290">
+<img src="https://github.com/maayyaannkk/Stock-Hawk/blob/master/Screenshot9.png" height="520" width="290">
